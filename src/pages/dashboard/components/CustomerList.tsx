@@ -1,0 +1,137 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
+import { Edit, Trash2, Loader } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import { useCustomers, type Customer } from '../../../context/CustomerContext';
+
+const columnHelper = createColumnHelper<Customer>();
+
+const columns = [
+  columnHelper.accessor('companyName', {
+    header: 'Company Name',
+    cell: info => info.getValue(),
+  }),
+  columnHelper.accessor('contactPerson', {
+    header: 'Contact Person',
+    cell: info => info.getValue(),
+  }),
+  columnHelper.accessor('email', {
+    header: 'Email',
+    cell: info => info.getValue(),
+  }),
+  columnHelper.accessor('phone', {
+    header: 'Phone',
+    cell: info => info.getValue(),
+  }),
+  columnHelper.accessor('customerGroup', {
+    header: 'Group',
+    cell: info => info.getValue(),
+  }),
+  columnHelper.display({
+    id: 'actions',
+    cell: info => {
+      const navigate = useNavigate();
+      const { deleteCustomer } = useCustomers();
+
+      const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this customer?')) {
+          deleteCustomer(info.row.original.id);
+        }
+      };
+
+      return (
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/dashboard/customers/${info.row.original.id}/edit`)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      );
+    },
+  }),
+];
+
+export function CustomerList() {
+  const { customers, isLoading, error } = useCustomers();
+  
+  const table = useReactTable({
+    data: customers,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        <p>Error loading customers: {error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <th
+                    key={header.id}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {table.getRowModel().rows.map(row => (
+              <tr key={row.id} className="hover:bg-gray-50">
+                {row.getVisibleCells().map(cell => (
+                  <td
+                    key={cell.id}
+                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
